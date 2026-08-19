@@ -167,7 +167,8 @@ DOCS_API_BASE_URL=http://localhost:3003 pnpm --filter platform-docs dev
 - 构建命令：`pnpm --filter platform-docs types:check`，以及 `DOCS_API_BASE_URL=https://dlowapi.me DOCS_SYNC_REQUIRED=true pnpm --filter platform-docs build`。
 - 服务器目录：`/opt/dlow/apps/fumadocs/releases/<timestamp>-<commit>/`，`current` 软链指向现役版本。发布前必须保留旧 release，便于回滚。
 - 首次构建曾因 DlowAPI 尚未部署而收到 `/api/docs/manifest` 的 404；正确顺序是先部署并重启 DlowAPI，确认 manifest 返回 200，再构建文档站。
-- `docs.dlowapi.me` 当前没有 DNS A 记录，也没有证书；因此服务器文件已就位但不能声称公网 HTTPS 已上线。Namecheap 添加 `docs -> 47.76.59.121` 后，再用 certbot webroot 签发证书并启用 443 配置。
+- `docs.dlowapi.me` 已解析到 `47.76.59.121`，并已签发 Let's Encrypt 证书；HTTP 会 301 跳转 HTTPS。证书复用 DlowAPI 现有 `/opt/dlow/bin/certbot-renew.sh` 和 `/etc/cron.d/dlowapi-certbot`，每天 03:17、15:17 自动续期并 reload Nginx。
+- 文档站是 Nginx 静态站，不需要开放 3002 等应用端口；服务器防火墙保留 `http`/`https`（80/443）即可。
 - 传输 macOS 生成的构建目录会带 `._*` AppleDouble 文件；不影响站点，但后续发布应使用禁用扩展属性的 tar，减少无用文件。
 
 DlowAPI 发布、取消发布或删除已发布文档后，会创建构建记录并调用 `DOCS_BUILD_WEBHOOK_URL`。该 webhook 应由 CI/部署服务接收，重新执行上述构建并发布 `out/`。`DOCS_BUILD_WEBHOOK_SECRET`（可选）会以 `X-Docs-Signature: sha256=...` 发送 HMAC-SHA256 签名。未配置 webhook 时，管理页会显示“构建未配置”，可以在部署系统中手动执行构建或点击重试。
