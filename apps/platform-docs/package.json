@@ -1,0 +1,33 @@
+{
+  "name": "platform-docs",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm sync:content && next build",
+    "dev": "next dev --port 3002",
+    "start": "serve out -l 3002",
+    "sync:content": "node scripts/sync-content.mjs",
+    "types:check": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "cnfast": "^0.1.0",
+    "fumadocs-core": "workspace:*",
+    "fumadocs-mdx": "workspace:*",
+    "fumadocs-ui": "workspace:@fumadocs/base-ui@*",
+    "lucide-react": "^1.31.0",
+    "next": "16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/mdx": "^2.0.14",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "postcss": "^8.5.26",
+    "serve": "^14.2.6",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  }
+}

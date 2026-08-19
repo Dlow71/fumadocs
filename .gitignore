@@ -19,6 +19,7 @@ node_modules
 .turbo
 .next
 dist
+/apps/platform-docs/out/
 .contentlayer
 .eslintcache
 .source
