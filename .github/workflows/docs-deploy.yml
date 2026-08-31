@@ -1,0 +1,61 @@
+name: Deploy platform documentation
+
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [docs-publish]
+
+concurrency:
+  group: platform-docs-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out documentation site
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build static documentation
+        env:
+          DOCS_API_BASE_URL: ${{ vars.DOCS_API_BASE_URL || 'https://dlowapi.me' }}
+          DOCS_SYNC_REQUIRED: 'true'
+        run: pnpm --filter platform-docs build
+
+      - name: Configure SSH
+        env:
+          DOCS_DEPLOY_KEY: ${{ secrets.DOCS_DEPLOY_KEY }}
+        run: |
+          test -n "$DOCS_DEPLOY_KEY"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DOCS_DEPLOY_KEY" > "$HOME/.ssh/docs_deploy"
+          chmod 600 "$HOME/.ssh/docs_deploy"
+          ssh-keyscan -p "${{ vars.DOCS_DEPLOY_PORT || '22' }}" -H "${{ secrets.DOCS_DEPLOY_HOST }}" >> "$HOME/.ssh/known_hosts"
+
+      - name: Upload and activate release
+        env:
+          DEPLOY_HOST: ${{ secrets.DOCS_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DOCS_DEPLOY_USER || 'root' }}
+          DEPLOY_PORT: ${{ vars.DOCS_DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DOCS_DEPLOY_PATH || '/opt/dlow/apps/fumadocs' }}
+          RELEASE_ID: ${{ format('{0}-{1}', github.run_number, github.sha) }}
+        run: |
+          test -n "$DEPLOY_HOST"
+          tar -C apps/platform-docs/out -czf - . | ssh -i "$HOME/.ssh/docs_deploy" -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "set -eu; release='$RELEASE_ID'; base='$DEPLOY_PATH'; tmp=\"\$base/.incoming-\$release\"; final=\"\$base/releases/\$release\"; install -d -m 755 \"\$base/releases\"; rm -rf \"\$tmp\"; install -d -m 755 \"\$tmp\"; tar -xzf - -C \"\$tmp\"; test -s \"\$tmp/index.html\"; mv \"\$tmp\" \"\$final\"; ln -sfn \"\$final\" \"\$base/current\"; rm -f \"\$base/.incoming-\$release\"; nginx -t; systemctl reload nginx"

@@ -171,7 +171,9 @@ DOCS_API_BASE_URL=http://localhost:3003 pnpm --filter platform-docs dev
 - 文档站是 Nginx 静态站，不需要开放 3002 等应用端口；服务器防火墙保留 `http`/`https`（80/443）即可。
 - 传输 macOS 生成的构建目录会带 `._*` AppleDouble 文件；不影响站点，但后续发布应使用禁用扩展属性的 tar，减少无用文件。
 
-DlowAPI 发布、取消发布或删除已发布文档后，会创建构建记录并调用 `DOCS_BUILD_WEBHOOK_URL`。该 webhook 应由 CI/部署服务接收，重新执行上述构建并发布 `out/`。`DOCS_BUILD_WEBHOOK_SECRET`（可选）会以 `X-Docs-Signature: sha256=...` 发送 HMAC-SHA256 签名。未配置 webhook 时，管理页会显示“构建未配置”，可以在部署系统中手动执行构建或点击重试。
+DlowAPI 发布、取消发布或删除已发布文档后，会创建构建记录并调用 `DOCS_BUILD_WEBHOOK_URL`。未配置 webhook 时会自动 fallback 到 GitHub Actions workflow dispatch；两者都应负责重新执行上述构建并发布 `out/`。`DOCS_BUILD_WEBHOOK_SECRET`（可选）会以 `X-Docs-Signature: sha256=...` 发送 HMAC-SHA256 签名。
+
+推荐使用 `.github/workflows/docs-deploy.yml`：NewAPI 管理页的“重新构建文档”按钮通过 GitHub Actions API 触发该 workflow。DlowAPI 环境变量需要配置 `DOCS_GITHUB_REPOSITORY`、`DOCS_GITHUB_WORKFLOW`、`DOCS_GITHUB_REF` 和 `DOCS_GITHUB_TOKEN`；workflow 使用仓库 Secrets `DOCS_DEPLOY_HOST`、`DOCS_DEPLOY_KEY`，以及 Variables `DOCS_DEPLOY_USER`、`DOCS_DEPLOY_PORT`、`DOCS_DEPLOY_PATH`、`DOCS_API_BASE_URL` 完成构建和 SSH 发布。换服务器时只需更新这些 Secrets/Variables、DNS，并在新机准备 Nginx 与 `/opt/dlow/apps/fumadocs/{releases,current}` 目录。
 
 静态部署不需要数据库和常驻 Node 服务。只有加入服务端 AI 问答、受控 API 代理或动态鉴权后，才需要改为 Next.js 服务端部署。
 
