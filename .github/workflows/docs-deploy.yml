@@ -7,7 +7,7 @@ on:
 
 concurrency:
   group: platform-docs-deploy
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -32,6 +32,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm turbo run build --filter=platform-docs^...
 
       - name: Build static documentation
         env:
